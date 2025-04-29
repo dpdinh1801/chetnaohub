@@ -1,0 +1,5 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/chetnao_part1.lua"))()
+wait(1)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/chetnao_part2.lua"))()
+wait(1)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/chetnao_part3.lua"))()
