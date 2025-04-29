@@ -1,5 +1,8 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/gui%20farm"))()
+git add chetnao.lua
+git commit -m "loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/gui%20farm"))()
 wait(1)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/hop%20setting"))()
 wait(1)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/status%20logic"))()
+"
+git push origin main
