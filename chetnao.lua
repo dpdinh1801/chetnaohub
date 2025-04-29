@@ -1,411 +1,429 @@
-git init
-git add BloxFruitCompleteKavoUIScript.lua
-git commit -m "-- Script chạy trong Roblox Studio: GUI Kavo UI với Hop Server, Farming, Auto Farm Bone, Auto Farm EXP, Auto Quest, Bone to EXP
+git add BloxFruitsExploitGUI.lua
+git commit -m "-- Khởi tạo thư viện
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local PathfindingService = game:GetService("PathfindingService")
+local LocalPlayer = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
-local DataStoreService = game:GetService("DataStoreService")
-local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local RunService = game:GetService("RunService")
 
--- DataStore để lưu Bone và EXP
-local PlayerData = DataStoreService:GetDataStore("PlayerData")
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BloxFruitGUI"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Tải Kavo UI Library
-local Kavo = loadstring(HttpService:GetAsync("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Kavo.CreateLib("Blox Fruit Script", "DarkTheme")
+-- Tạo Frame chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 400, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
 
--- Hàm hiển thị thông báo pop-up
-local function showNotification(player, message)
-    local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-    local frame = Instance.new("Frame", screenGui)
-    frame.Size = UDim2.new(0, 200, 0, 50)
-    frame.Position = UDim2.new(0.5, -100, 0.1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.5
+-- Tạo tiêu đề
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "Galaxy Hub - Blox Fruits"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
 
-    local textLabel = Instance.new("TextLabel", frame)
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.Text = message
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextScaled = true
+-- Tạo Frame chứa các tab (bên trái)
+local TabFrame = Instance.new("Frame")
+TabFrame.Size = UDim2.new(0, 120, 1, -40)
+TabFrame.Position = UDim2.new(0, 0, 0, 40)
+TabFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TabFrame.Parent = MainFrame
 
-    local tween = TweenService:Create(frame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -100, 0.2, 0)})
-    tween:Play()
-    wait(3)
-    tween = TweenService:Create(frame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -100, 0.1, 0)})
-    tween:Play()
-    wait(1)
-    screenGui:Destroy()
+-- Danh sách các tab
+local Tabs = {
+    "Tab farming", "Tab hopping", "Tab setting", "Tab status"
+}
+
+-- Tạo Frame chứa nội dung (bên phải)
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(0, 280, 1, -40)
+ContentFrame.Position = UDim2.new(0, 120, 0, 40)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ContentFrame.Parent = MainFrame
+
+-- Tạo các Frame cho từng tab
+local TabContents = {}
+for _, tabName in ipairs(Tabs) do
+    local tabContent = Instance.new("Frame")
+    tabContent.Size = UDim2.new(1, 0, 1, 0)
+    tabContent.BackgroundTransparency = 1
+    tabContent.Visible = false
+    tabContent.Parent = ContentFrame
+    TabContents[tabName] = tabContent
 end
 
--- Hàm tạo quái Bone giả lập
-local function spawnBoneEnemy()
-    if #Workspace:GetChildrenOfClass("Model") >= 5 then return end
-    local enemy = Instance.new("Model")
-    enemy.Name = "BoneEnemy"
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(2, 4, 2)
-    part.Position = Vector3.new(math.random(-50, 50), 10, math.random(-50, 50))
-    part.BrickColor = BrickColor.new("White")
-    part.Anchored = false
-    part.CanCollide = true
-    part.Parent = enemy
+-- Tạo các nút tab
+for i, tabName in ipairs(Tabs) do
+    local TabButton = Instance.new("TextButton")
+    TabButton.Size = UDim2.new(1, 0, 0, 30)
+    TabButton.Position = UDim2.new(0, 0, 0, (i-1)*30)
+    TabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TabButton.Text = tabName
+    TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TabButton.TextSize = 16
+    TabButton.Font = Enum.Font.SourceSans
+    TabButton.Parent = TabFrame
 
-    local humanoid = Instance.new("Humanoid")
-    humanoid.MaxHealth = 100
-    humanoid.Health = 100
-    humanoid.Parent = enemy
-    enemy.PrimaryPart = part
-    enemy.Parent = Workspace
-
-    local highlight = Instance.new("Highlight")
-    highlight.FillColor = Color3.fromRGB(255, 255, 255)
-    highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-    highlight.Parent = part
-
-    local particle = Instance.new("ParticleEmitter")
-    particle.Texture = "rbxassetid://243098098"
-    particle.Rate = 0
-    particle.Lifetime = NumberRange.new(1, 2)
-    particle.Speed = NumberRange.new(5, 10)
-    particle.Parent = part
-
-    return enemy
-end
-
--- Hàm tạo quái thường giả lập (cho Auto Farm EXP)
-local function spawnNormalEnemy()
-    if #Workspace:GetChildrenOfClass("Model") >= 5 then return end
-    local enemy = Instance.new("Model")
-    enemy.Name = "NormalEnemy"
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(2, 4, 2)
-    part.Position = Vector3.new(math.random(-50, 50), 10, math.random(-50, 50))
-    part.BrickColor = BrickColor.new("Really red")
-    part.Anchored = false
-    part.CanCollide = true
-    part.Parent = enemy
-
-    local humanoid = Instance.new("Humanoid")
-    humanoid.MaxHealth = 50
-    humanoid.Health = 50
-    humanoid.Parent = enemy
-    enemy.PrimaryPart = part
-    enemy.Parent = Workspace
-
-    local highlight = Instance.new("Highlight")
-    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-    highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-    highlight.Parent = part
-
-    return enemy
-end
-
--- Hàm tạo NPC nhiệm vụ giả lập
-local function spawnQuestNPC()
-    local npc = Instance.new("Model")
-    npc.Name = "QuestNPC"
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(2, 4, 2)
-    part.Position = Vector3.new(0, 10, 0)
-    part.BrickColor = BrickColor.new("Really green")
-    part.Anchored = true
-    part.CanCollide = true
-    part.Parent = npc
-
-    local humanoid = Instance.new("Humanoid")
-    humanoid.MaxHealth = 0
-    humanoid.Health = 0
-    humanoid.Parent = npc
-    npc.PrimaryPart = part
-    npc.Parent = Workspace
-
-    return npc
-end
-
--- Hàm di chuyển đến vị trí
-local function moveToPosition(player, position)
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
-
-    local humanoid = character.Humanoid
-    local path = PathfindingService:CreatePath()
-    path:ComputeAsync(character.HumanoidRootPart.Position, position)
-    local waypoints = path:GetWaypoints()
-
-    for _, waypoint in pairs(waypoints) do
-        humanoid:MoveTo(waypoint.Position)
-        humanoid.MoveToFinished:Wait()
-    end
-    return true
-end
-
--- Hàm farm Bone
-local function farmBone(player, boneLabel)
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
-
-    local humanoid = character.Humanoid
-    local rootPart = character.HumanoidRootPart
-    local closestEnemy = nil
-    local minDistance = math.huge
-
-    for _, enemy in pairs(Workspace:GetChildren()) do
-        if enemy.Name == "BoneEnemy" and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-            local distance = (enemy.PrimaryPart.Position - rootPart.Position).Magnitude
-            if distance < minDistance then
-                minDistance = distance
-                closestEnemy = enemy
+    -- Xử lý khi nhấn tab (đổi màu tab và hiển thị nội dung)
+    TabButton.MouseButton1Click:Connect(function()
+        for _, button in pairs(TabFrame:GetChildren()) do
+            if button:IsA("TextButton") then
+                button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
             end
         end
-    end
+        TabButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 
-    if closestEnemy then
-        moveToPosition(player, closestEnemy.PrimaryPart.Position)
-        closestEnemy.Humanoid.Health = 0
-        local particle = closestEnemy.PrimaryPart:FindFirstChild("ParticleEmitter")
-        if particle then particle:Emit(10) end
-        local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://9114487369"
-        sound.Parent = closestEnemy.PrimaryPart
-        sound:Play()
-        closestEnemy:Destroy()
-        spawnBoneEnemy()
-        local boneCount = player:GetAttribute("BoneCount") or 0
-        boneCount = boneCount + 1
-        player:SetAttribute("BoneCount", boneCount)
-        boneLabel.Text = "Bones: " .. boneCount
-        showNotification(player, "Thu thập " .. boneCount .. " Bones!")
-        return true
-    end
-    return false
+        for _, content in pairs(TabContents) do
+            content.Visible = false
+        end
+        TabContents[tabName].Visible = true
+    end)
 end
 
--- Hàm farm EXP
-local function farmEXP(player, expLabel)
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
+-- Biến trạng thái cho các tính năng
+local Toggles = {
+    AutoKillKatakuri = false,
+    AutoKillIndra = false,
+    AutoPullLever = false,
+    AutoTrialV4 = false,
+    AutoTrainV4 = false,
+    AutoBuyLegendarySword = false,
+    AutoHopKatakuri = false,
+    AutoHopIndra = false,
+    AutoHopMirage = false,
+    AutoHopFullMoon = false,
+    AutoHopLegendarySword = false,
+    FastAttack = false,
+    FPSBoost = false,
+    TeleportMode = "Fly" -- Fly hoặc Teleport
+}
 
-    local humanoid = character.Humanoid
-    local rootPart = character.HumanoidRootPart
-    local closestEnemy = nil
-    local minDistance = math.huge
+-- Hàm tạo nút bật/tắt
+local function CreateToggleButton(parent, name, positionY, toggleKey)
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0, 200, 0, 30)
+    ToggleButton.Position = UDim2.new(0.5, -100, 0, positionY)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    ToggleButton.Text = name .. ": TẮT"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 14
+    ToggleButton.Parent = parent
 
-    for _, enemy in pairs(Workspace:GetChildren()) do
-        if enemy.Name == "NormalEnemy" and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-            local distance = (enemy.PrimaryPart.Position - rootPart.Position).Magnitude
-            if distance < minDistance then
-                minDistance = distance
-                closestEnemy = enemy
-            end
-        end
-    end
-
-    if closestEnemy then
-        moveToPosition(player, closestEnemy.PrimaryPart.Position)
-        closestEnemy.Humanoid.Health = 0
-        closestEnemy:Destroy()
-        spawnNormalEnemy()
-        local exp = player:GetAttribute("EXP") or 0
-        exp = exp + 50
-        player:SetAttribute("EXP", exp)
-        expLabel.Text = "EXP: " .. exp
-        showNotification(player, "Thu thập 50 EXP! Tổng: " .. exp)
-        return true
-    end
-    return false
+    ToggleButton.MouseButton1Click:Connect(function()
+        Toggles[toggleKey] = not Toggles[toggleKey]
+        ToggleButton.Text = name .. ": " .. (Toggles[toggleKey] and "BẬT" or "TẮT")
+        ToggleButton.BackgroundColor3 = Toggles[toggleKey] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(60, 60, 60)
+    end)
 end
 
--- Hàm Auto Quest
-local function autoQuest(player, questLabel)
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
+-- Tab Farming
+CreateToggleButton(TabContents["Tab farming"], "Auto Kill Katakuri", 10, "AutoKillKatakuri")
+CreateToggleButton(TabContents["Tab farming"], "Auto Kill Indra", 50, "AutoKillIndra")
+CreateToggleButton(TabContents["Tab farming"], "Auto Pull Lever", 90, "AutoPullLever")
+CreateToggleButton(TabContents["Tab farming"], "Auto Trial V4", 130, "AutoTrialV4")
+CreateToggleButton(TabContents["Tab farming"], "Auto Train V4", 170, "AutoTrainV4")
+CreateToggleButton(TabContents["Tab farming"], "Auto Buy Legendary Sword", 210, "AutoBuyLegendarySword")
 
-    local npc = Workspace:FindFirstChild("QuestNPC")
-    if not npc then npc = spawnQuestNPC() end
-    moveToPosition(player, npc.PrimaryPart.Position)
-    showNotification(player, "Nhận nhiệm vụ từ NPC!")
-    questLabel.Text = "Quest: Tiêu diệt 3 quái"
-    local kills = 0
-    while kills < 3 do
-        if farmEXP(player, {Text = questLabel.Text}) then
-            kills = kills + 1
-            questLabel.Text = "Quest: Tiêu diệt " .. (3 - kills) .. " quái"
-        end
-        wait(0.5)
-    end
-    moveToPosition(player, npc.PrimaryPart.Position)
-    showNotification(player, "Hoàn thành nhiệm vụ! Nhận 100 EXP")
-    local exp = player:GetAttribute("EXP") or 0
-    exp = exp + 100
-    player:SetAttribute("EXP", exp)
-    questLabel.Text = "Quest: Hoàn thành"
-    return true
-end
+-- Tab Hopping
+CreateToggleButton(TabContents["Tab hopping"], "Auto Hop Katakuri", 10, "AutoHopKatakuri")
+CreateToggleButton(TabContents["Tab hopping"], "Auto Hop Indra", 50, "AutoHopIndra")
+CreateToggleButton(TabContents["Tab hopping"], "Auto Hop Mirage Island", 90, "AutoHopMirage")
+CreateToggleButton(TabContents["Tab hopping"], "Auto Hop Full Moon", 130, "AutoHopFullMoon")
+CreateToggleButton(TabContents["Tab hopping"], "Auto Hop Legendary Sword", 170, "AutoHopLegendarySword")
 
--- Hàm lưu dữ liệu
-local function savePlayerData(player)
-    local success, err = pcall(function()
-        PlayerData:SetAsync(player.UserId, {
-            BoneCount = player:GetAttribute("BoneCount") or 0,
-            EXP = player:GetAttribute("EXP") or 0
-        })
-    end)
-    if not success then
-        warn("Lỗi khi lưu dữ liệu cho " .. player.Name .. ": " .. err)
-    end
-end
+-- Tab Setting
+CreateToggleButton(TabContents["Tab setting"], "Fast Attack", 10, "FastAttack")
+CreateToggleButton(TabContents["Tab setting"], "FPS Boost", 50, "FPSBoost")
 
--- Hàm tải dữ liệu
-local function loadPlayerData(player)
-    local success, data = pcall(function()
-        return PlayerData:GetAsync(player.UserId)
-    end)
-    if success and data then
-        player:SetAttribute("BoneCount", data.BoneCount or 0)
-        player:SetAttribute("EXP", data.EXP or 0)
-    end
-end
+-- Dropdown cho Teleport Mode
+local TeleportModeLabel = Instance.new("TextLabel")
+TeleportModeLabel.Size = UDim2.new(0, 200, 0, 30)
+TeleportModeLabel.Position = UDim2.new(0.5, -100, 0, 90)
+TeleportModeLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+TeleportModeLabel.Text = "Teleport Mode: Fly"
+TeleportModeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportModeLabel.TextSize = 14
+TeleportModeLabel.Parent = TabContents["Tab setting"]
 
--- Xử lý người chơi
-Players.PlayerAdded:Connect(function(player)
-    player:SetAttribute("BoneCount", 0)
-    player:SetAttribute("EXP", 0)
-    player:SetAttribute("LegendarySword", false)
-    player:SetAttribute("TrialV4Complete", false)
-    loadPlayerData(player)
+local TeleportModeButton = Instance.new("TextButton")
+TeleportModeButton.Size = UDim2.new(0, 100, 0, 30)
+TeleportModeButton.Position = UDim2.new(0.5, 0, 0, 90)
+TeleportModeButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+TeleportModeButton.Text = "Switch"
+TeleportModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportModeButton.TextSize = 14
+TeleportModeButton.Parent = TabContents["Tab setting"]
 
-    -- Tab Hop Server
-    local HopServerTab = Window:NewTab("Hop Server")
-    local HopServerSection = HopServerTab:NewSection("Server Hop Features")
-
-    local hopFeatures = {
-        "Katakuri V2",
-        "Indra",
-        "Mirage",
-        "Legendary Sword",
-        "Full Moon"
-    }
-
-    for _, feature in pairs(hopFeatures) do
-        HopServerSection:NewToggle("Auto Hop " .. feature, "Tìm server với " .. feature, function(state)
-            print(player.Name .. " toggled Auto Hop " .. feature .. (state and " ON" or " OFF"))
-            if state then
-                print("Đang tìm server với " .. feature .. "...")
-                showNotification(player, "Đang tìm server với " .. feature .. "...")
-            end
-        end)
-    end
-
-    -- Tab Farming
-    local FarmingTab = Window:NewTab("Farming")
-    local FarmingSection = FarmingTab:NewSection("Farming Features")
-    local BoneLabel = FarmingSection:NewLabel("Bones: " .. (player:GetAttribute("BoneCount") or 0))
-    local EXPLabel = FarmingSection:NewLabel("EXP: " .. (player:GetAttribute("EXP") or 0))
-    local QuestLabel = FarmingSection:NewLabel("Quest: None")
-
-    FarmingSection:NewButton("Auto Kill Boss (Katakuri/Indra)", "Tấn công boss", function()
-        print("Bắt đầu Auto Kill Boss...")
-        local bossPos = Vector3.new(50, 10, 50)
-        moveToPosition(player, bossPos)
-        showNotification(player, "Đang tấn công boss Katakuri/Indra!")
-        print("Đang tấn công boss Katakuri/Indra!")
-    end)
-
-    FarmingSection:NewButton("Auto Buy Legendary Sword", "Mua Legendary Sword", function()
-        print("Đang mua Legendary Sword...")
-        player:SetAttribute("LegendarySword", true)
-        showNotification(player, "Đã mua Legendary Sword!")
-        print("Đã mua Legendary Sword!")
-    end)
-
-    FarmingSection:NewButton("Auto Pull Lever", "Thực hiện kéo cần", function()
-        print("Bắt đầu Auto Pull Lever...")
-        local steps = {
-            {pos = Vector3.new(0, 10, 0), msg = "Nhận nhiệm vụ kéo cần"},
-            {pos = Vector3.new(100, 10, 100), msg = "Bay đến Mirage Island"},
-            {pos = Vector3.new(100, 10, 100), msg = "Nhìn trăng"},
-            {pos = Vector3.new(100, 10, 100), msg = "Bật tộc V3"},
-            {pos = Vector3.new(150, 10, 150), msg = "Dịch chuyển đến bánh răng"}
-        }
-        for _, step in pairs(steps) do
-            moveToPosition(player, step.pos)
-            print(step.msg)
-            showNotification(player, step.msg)
-            wait(1)
-        end
-        print("Hoàn thành Auto Pull Lever!")
-        showNotification(player, "Hoàn thành Auto Pull Lever!")
-    end)
-
-    FarmingSection:NewButton("Auto Trial V4", "Hoàn thành Trial V4", function()
-        print("Bắt đầu Auto Trial V4...")
-        print("Bật tộc V3 khi người chơi khác bật...")
-        print("Hoàn thành trial...")
-        local enemyPos = Vector3.new(200, 10, 200)
-        moveToPosition(player, enemyPos)
-        print("Đang kill player với skill...")
-        player:SetAttribute("TrialV4Complete", true)
-        print("Chọn gear và train...")
-        print("Hoàn thành Auto Trial V4!")
-        showNotification(player, "Hoàn thành Auto Trial V4!")
-    end)
-
-    FarmingSection:NewToggle("Auto Farm Bone", "Tự động farm Bone", function(state)
-        if state then
-            spawnBoneEnemy()
-            while state and player.Character do
-                farmBone(player, BoneLabel)
-                savePlayerData(player)
-                wait(0.5)
-            end
-        end
-    end)
-
-    FarmingSection:NewToggle("Auto Farm EXP", "Tự động farm EXP", function(state)
-        if state then
-            spawnNormalEnemy()
-            while state and player.Character do
-                farmEXP(player, EXPLabel)
-                savePlayerData(player)
-                wait(0.5)
-            end
-        end
-    end)
-
-    FarmingSection:NewButton("Auto Quest", "Tự động làm nhiệm vụ", function()
-        if autoQuest(player, QuestLabel) then
-            savePlayerData(player)
-        end
-    end)
-
-    FarmingSection:NewButton("Bone to EXP (10 Bones = 100 EXP)", "Đổi Bone lấy EXP", function()
-        local boneCount = player:GetAttribute("BoneCount") or 0
-        if boneCount >= 10 then
-            boneCount = boneCount - 10
-            local exp = player:GetAttribute("EXP") or 0
-            exp = exp + 100
-            player:SetAttribute("BoneCount", boneCount)
-            player:SetAttribute("EXP", exp)
-            BoneLabel.Text = "Bones: " .. boneCount
-            EXPLabel.Text = "EXP: " .. exp
-            savePlayerData(player)
-            showNotification(player, "Đã đổi 10 Bones lấy 100 EXP!")
-        else
-            showNotification(player, "Không đủ Bones! Cần 10 Bones.")
-        end
-    end)
+TeleportModeButton.MouseButton1Click:Connect(function()
+    Toggles.TeleportMode = Toggles.TeleportMode == "Fly" and "Teleport" or "Fly"
+    TeleportModeLabel.Text = "Teleport Mode: " .. Toggles.TeleportMode
 end)
 
-Players.PlayerRemoving:Connect(function(player)
-    savePlayerData(player)
+-- Tab Status
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, 0, 1, 0)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "Loading status..."
+StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusText.TextSize = 14
+StatusText.TextWrapped = true
+StatusText.Parent = TabContents["Tab status"]
+
+-- Logic cho các tính năng
+
+-- Auto Kill Boss (Katakuri/Indra)
+spawn(function()
+    while true do
+        if Toggles.AutoKillKatakuri or Toggles.AutoKillIndra then
+            local bossName = Toggles.AutoKillKatakuri and "Katakuri" or "Indra"
+            for _, boss in pairs(workspace.Enemies:GetChildren()) do
+                if boss.Name:find(bossName) and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new())
+                end
+            end
+        end
+        wait(0.1)
+    end
 end)
 
--- Tạo quái và NPC ban đầu
-spawnBoneEnemy()
-spawnNormalEnemy()
-spawnQuestNPC()"
-git remote add origin <URL-repository>
-git push -u origin main
+-- Auto Pull Lever (giả lập: bay đến Mirage Island và bật tộc V3)
+spawn(function()
+    while true do
+        if Toggles.AutoPullLever then
+            -- Bay đến Mirage Island (giả lập tọa độ)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 1000, 0) -- Tọa độ giả lập
+            wait(2)
+            -- Bật tộc V3 (giả lập)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Awaken")
+            wait(2)
+            -- Lượm bánh răng (giả lập)
+            for _, gear in pairs(workspace:GetChildren()) do
+                if gear.Name == "Gear" then
+                    fireclickdetector(gear:FindFirstChildOfClass("ClickDetector"))
+                end
+            end
+        end
+        wait(1)
+    end
+end)
+
+-- Auto Trial V4 (giả lập: bật tộc V3, hoàn thành trial, giết người chơi, chọn gear)
+spawn(function()
+    while true do
+        if Toggles.AutoTrialV4 then
+            -- Bật tộc V3
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Awaken")
+            wait(2)
+            -- Hoàn thành trial (giả lập)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CompleteTrial")
+            wait(2)
+            -- Giết người chơi gần nhất
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character.Humanoid.Health > 0 then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new())
+                    break
+                end
+            end
+            wait(2)
+            -- Chọn gear (giả lập)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("ChooseGear")
+        end
+        wait(1)
+    end
+end)
+
+-- Auto Train V4 (farm Katakuri V1, bật tộc V4, mua gear)
+spawn(function()
+    while true do
+        if Toggles.AutoTrainV4 then
+            -- Farm Katakuri V1
+            for _, boss in pairs(workspace.Enemies:GetChildren()) do
+                if boss.Name:find("Katakuri") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new())
+                end
+            end
+            wait(2)
+            -- Bật tộc V4 (giả lập)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AwakenV4")
+            wait(2)
+            -- Mua gear (giả lập)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyGear")
+        end
+        wait(1)
+    end
+end)
+
+-- Auto Buy Legendary Sword (Shisui, Saddi, Wando)
+spawn(function()
+    while true do
+        if Toggles.AutoBuyLegendarySword then
+            local swords = {"Shisui", "Saddi", "Wando"}
+            for _, sword in pairs(swords) do
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", sword)
+                wait(1)
+            end
+        end
+        wait(5)
+    end
+end)
+
+-- Auto Hop Server (Katakuri, Indra, Mirage Island, Full Moon, Legendary Sword)
+local function ServerHop(condition)
+    local PlaceID = game.PlaceId
+    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"))
+    for _, server in pairs(servers.data) do
+        if server.id ~= game.JobId and server.playing < server.maxPlayers then
+            -- Kiểm tra điều kiện (giả lập, vì không thể kiểm tra trực tiếp)
+            TeleportService:TeleportToPlaceInstance(PlaceID, server.id, LocalPlayer)
+            break
+        end
+    end
+end
+
+spawn(function()
+    while true do
+        if Toggles.AutoHopKatakuri then
+            ServerHop("Katakuri V2")
+        elseif Toggles.AutoHopIndra then
+            ServerHop("Indra")
+        elseif Toggles.AutoHopMirage then
+            ServerHop("Mirage Island")
+        elseif Toggles.AutoHopFullMoon then
+            ServerHop("Full Moon")
+        elseif Toggles.AutoHopLegendarySword then
+            ServerHop("Legendary Sword")
+        end
+        wait(10)
+    end
+end)
+
+-- Fast Attack
+spawn(function()
+    while true do
+        if Toggles.FastAttack then
+            -- Giảm thời gian chờ giữa các đòn đánh (giả lập)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AttackSpeed", 0.1)
+        end
+        wait(0.1)
+    end
+end)
+
+-- FPS Boost
+spawn(function()
+    while true do
+        if Toggles.FPSBoost then
+            -- Tắt hiệu ứng và giảm chất lượng đồ họa
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Enabled = false
+                end
+            end
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        end
+        wait(5)
+    end
+end)
+
+-- Teleport Mode (Fly hoặc Teleport)
+local flying = false
+local bodyVelocity, bodyGyro
+
+local function StartFly()
+    if not LocalPlayer.Character then return end
+    flying = true
+    local root = LocalPlayer.Character.HumanoidRootPart
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = root
+
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.CFrame = root.CFrame
+    bodyGyro.Parent = root
+
+    spawn(function()
+        while flying do
+            local moveDirection = Vector3.new(0, 0, 0)
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+                moveDirection = moveDirection + Vector3.new(0, 0, -1)
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+                moveDirection = moveDirection + Vector3.new(0, 0, 1)
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+                moveDirection = moveDirection + Vector3.new(-1, 0, 0)
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+                moveDirection = moveDirection + Vector3.new(1, 0, 0)
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+                moveDirection = moveDirection + Vector3.new(0, 1, 0)
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
+                moveDirection = moveDirection + Vector3.new(0, -1, 0)
+            end
+            bodyVelocity.Velocity = (root.CFrame * CFrame.new(moveDirection * 50)).p - root.Position
+            bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+            wait()
+        end
+    end)
+end
+
+local function StopFly()
+    flying = false
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+end
+
+spawn(function()
+    while true do
+        if Toggles.TeleportMode == "Fly" and not flying then
+            StartFly()
+        elseif Toggles.TeleportMode == "Teleport" then
+            StopFly()
+            -- Teleport logic (giả lập: dịch chuyển tức thời đến tọa độ gần nhất)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 10, 0))
+        end
+        wait(0.1)
+    end
+end)
+
+-- Tab Status (Hiển thị trạng thái server và tài khoản)
+spawn(function()
+    while true do
+        local status = "Server Status:\n"
+        status = status .. "Katakuri: " .. (workspace.Enemies:FindFirstChild("Katakuri") and "Có" or "Không") .. "\n"
+        status = status .. "Indra: " .. (workspace.Enemies:FindFirstChild("Indra") and "Có" or "Không") .. "\n"
+        status = status .. "Mirage Island: " .. (workspace:FindFirstChild("Mirage Island") and "Có" or "Không") .. "\n"
+        status = status .. "Full Moon: Unknown\n" -- Không thể kiểm tra trực tiếp
+        status = status .. "Legendary Sword: Unknown\n" -- Không thể kiểm tra trực tiếp
+
+        status = status .. "\nAccount Status:\n"
+        status = status .. "Level: " .. (LocalPlayer.Data.Level and LocalPlayer.Data.Level.Value or "Unknown") .. "\n"
+        status = status .. "Beli: " .. (LocalPlayer.Data.Beli and LocalPlayer.Data.Beli.Value or "Unknown") .. "\n"
+        status = status .. "Fragments: " .. (LocalPlayer.Data.Fragments and LocalPlayer.Data.Fragments.Value or "Unknown") .. "\n"
+
+        StatusText.Text = status
+        wait(5)
+    end
+end)
+
+-- Hiển thị tab đầu tiên mặc định
+TabContents["Tab farming"].Visible = true
+TabFrame:GetChildren()[1].BackgroundColor3 = Color3.fromRGB(0, 120, 255)"
+git push origin main
