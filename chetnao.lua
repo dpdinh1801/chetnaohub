@@ -1,1 +1,5 @@
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/gui%20farm.lua"))()
+wait(1)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/hop%20setting.lua"))()
+wait(1)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dpdinh1801/chetnaohub/main/status%20logic.lua"))()
